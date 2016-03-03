@@ -1,0 +1,303 @@
+---
+title: "Professional League of Legends Analysis"
+author: "Selwyn Davis"
+date: "March 3, 2016"
+output: pdf_document
+---
+Welcome to my analysis of League of Legends data!
+
+Here I will attempt to take apart some data on the professional League of Legends North American League for the 2015 season. This season is comprised of a Spring and Summer split and I opted to use this as opposed to the current season, which is progress, in order to ensure that I would be able to collect enough data in order to do a reasonable analysis. I also decided to limit my analysis to one region in order to avoid the effect that conflicting metas would have across regions. 
+
+In order to give my analysis some focus I decided to lok at whether or not I could scrounge up and synthesize data in order to aid fans that would like to participate in fantasy sports. At first my intention was just to collect information regarding palyer's average performance and examine how far from their average players performed against each team. In this way I would be able to account for match ups and predict higher or lower fantasy scores accordingly.
+
+
+Well let's get started! First up we're gonna have some printouts that were created as I take my data from an SQLite database that I built using Json files containing all the data available for each game played during the 2015 season. This includes creating averages for particular stats that are going to be of significant in predicting fantasy performance. In order to determine which statistics were the most important I explored the data quite a bit, looking for variables that had significant correlations with fantasy scores.
+
+
+```{r, echo=FALSE}
+library(DBI)
+library(RSQLite)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+con<- dbConnect(RSQLite::SQLite(), dbname='lolDB.db')
+alltables = dbListTables(con)
+p1<- dbGetQuery( con,'select * from Players' )
+p1 <- subset( p1, select = -c(firstTower, firstBlood, unrealKills, 
+                              firstBloodAssist, quadraKills, pentaKills,
+                              goldSpent,goldSpentDif, totalUnitsHealed,
+                              totalHeal))
+
+f<- mutate(p1, fantasy= (kills*3)+(assists*2)+(deaths*-1)+(.01*totalMinionsKilled))
+Player_avgs<- f %>%
+  group_by(name, role) %>%
+  summarize(Player_mean_goldDif= mean(goldEarnedDif),
+            Player_mean_kills= mean(kills),
+            Player_mean_assists= mean(assists),
+            Player_mean_win= mean(win),
+            Player_mean_largestKillingSpree= mean(largestKillingSpree),
+            Player_mean_champLevelDif= mean(champLevelDif),
+            Player_mean_deaths= mean(deaths),
+            Player_mean_fantasy= mean(fantasy),
+            Player_mean_duration= mean(duration),
+            Player_mean_goldEarned= mean(goldEarned),
+            Player_mean_TDT= mean(totalDamageTaken),
+            Player_mean_TDDC= mean(totalDamageDealtToChampions),
+            Player_mean_TDD= mean(totalDamageDealt),
+            Player_mean_TDTDif= mean(totalDamageTakenDif),
+            Player_mean_TDDCDif= mean(totalDamageDealtToChampionsDif),
+            Player_mean_TDDDif= mean(totalDamageDealtDif))
+ghg<- left_join(f, Player_avgs)
+
+
+Opp_avgs<- ghg %>%
+  group_by(opponent, role) %>%
+  summarize(Opp_mean_goldDif= -mean(goldEarnedDif), 
+            Opp_mean_duration= mean(duration))
+
+ghg<- left_join(ghg, Opp_avgs)
+
+dhd<- ghg%>%
+  group_by(name, role) %>%
+  mutate(cumGoldDif= cummean(goldEarnedDif),
+         cumGoldEarned= cummean(goldEarned),
+         cumKills= cummean(kills),
+         cumAssists= cummean(assists),
+         cumWin= cummean(win),
+         cumLKS= cummean(largestKillingSpree),
+         cumCLD= cummean(champLevelDif),
+         cumDeaths= cummean(deaths),
+         cumFantasy= cummean(fantasy),
+         cumDuration= cummean(duration),
+         cumTDDC= cummean(totalDamageDealtToChampions),
+         cumTDDCDif= cummean(totalDamageDealtToChampionsDif),
+         cumTDD= cummean(totalDamageDealt),
+         cumTDDDif= cummean(totalDamageDealtDif),
+         cumTDT= cummean(totalDamageTaken),
+         cumTDTDif= cummean(totalDamageTakenDif))
+
+dhd<- dhd %>%
+  group_by(opponent, role) %>%
+  mutate(cumOppGoldDif= cummean(-goldEarnedDif),
+         cumOppDuration= cummean(duration),
+         OppWin= (1-win),
+         cumOppWin= cummean(OppWin),
+         OppGoldEarned= goldEarned- goldEarnedDif,
+         cumOppGoldEarned= cummean(OppGoldEarned),
+         cumOppGoldEarnedDif= (-goldEarnedDif),
+         OppTDDC= totalDamageDealtToChampions-totalDamageDealtToChampionsDif,
+         cumOppTDDC= cummean(OppTDDC),
+         cumOppTDDCDif=cummean(-totalDamageDealtToChampionsDif),
+         OppTDD= totalDamageDealt- totalDamageDealtDif,
+         cumOppTDD= cummean(OppTDD),
+         cumOppTDDDif= cummean(-totalDamageDealtToChampionsDif),
+         OppTDT= totalDamageTaken- totalDamageTakenDif,
+         cumOppTDT= cummean(OppTDT),
+         cumOppTDTDif= cummean(-totalDamageTakenDif),
+         cumOppCLD= cummean(-champLevelDif))
+
+model_avgs= lm(fantasy~ Player_mean_goldDif+ Player_mean_kills+ Player_mean_assists+ Player_mean_win+ Player_mean_largestKillingSpree+ Player_mean_champLevelDif+ Player_mean_deaths+ Player_mean_fantasy+ Player_mean_duration+ Player_mean_goldEarned+ Player_mean_TDT+ Player_mean_TDDC+ Player_mean_TDD+ Player_mean_TDTDif+Player_mean_TDDCDif+ Player_mean_TDDDif, data= dhd)
+
+model1= lm(fantasy~ cumOppGoldDif+cumOppWin+cumOppGoldEarnedDif+
+             cumOppGoldEarnedDif+cumOppTDDC+cumOppTDDCDif+cumKills+
+             cumOppTDT+cumGoldDif+cumGoldEarned+cumAssists+
+             cumTDDC+ cumTDD+ cumTDT,data= dhd)
+
+
+ModelM= lm(fantasy~ cumOppGoldDif+cumOppWin+cumOppGoldEarnedDif+
+            cumOppGoldEarnedDif+cumOppTDT+ cumOppTDTDif+cumFantasy+
+            cumGoldDif, data= subset(dhd, role=="Middle"))
+
+ModelJ= lm(fantasy~ cumOppGoldEarnedDif+cumGoldDif+
+              cumOppGoldEarnedDif+cumOppTDDC+cumOppTDD+
+              cumFantasy+cumGoldDif+cumTDDC+ cumDeaths, 
+            data= subset(dhd, role=="Jungle"))
+ModelT= lm(fantasy~ cumOppWin+cumOppGoldEarnedDif+
+              cumOppGoldEarnedDif+cumOppTDDC+cumKills+
+              cumOppTDT+cumGoldDif+cumGoldEarned+cumAssists+
+              cumTDT,data= subset(dhd, role=="Top"))
+
+ModelA= lm(fantasy~ cumOppGoldDif+cumOppGoldEarnedDif+
+              cumOppGoldEarnedDif+cumOppTDDC+cumOppTDDCDif+
+              cumOppTDTDif+cumGoldDif+
+              cumDeaths+ cumKills+ cumAssists
+              ,data =subset(dhd, role=="ADC"))
+
+ModelS= lm( fantasy ~  cumOppWin +  cumOppTDDC + 
+               cumOppGoldEarnedDif + cumOppGoldEarnedDif +
+               cumOppTDDCDif+ cumOppTDT +
+               cumGoldDif + cumCLD + cumDeaths + 
+               cumKills + cumAssists +
+               cumTDDDif, data = subset(dhd, role == "Support"))
+```
+Before we go any further we can already look at some interesting information. Here we can see the average fantasy points scored by position. This already allows fantasy league players an edge in decision making. We can see that ADC players have the highest average fantasy scores so it makes sense to always prioritize drafting your ADC first followed by Middle, Top, Jungle and Support respectively. In the case of Jungle and Support we can see that their averages aren't too far apart so you may be able to switch that priority if you identify a particularly high value Support over a mediocre Jungle player.
+```{r}
+players_role <- group_by(dhd, role)
+player_MF_role <- summarize(players_role, mean_fantasy = mean(fantasy))
+
+ggplot(aes(x= role, y= mean_fantasy), data= player_MF_role)+
+      geom_bar(stat='identity', aes(fill= role))
+
+```
+
+If you'd like we can even take this appoach a step further by looking at the averages for each player in a given role. Here's a comparison of mean fantasy scores for players at the ADC position. Pick wisely!
+
+```{r}
+players_role_name <- group_by(dhd, role, name)
+player_MF_role <- summarize(players_role_name, mean_fantasy = mean(fantasy))
+
+ggplot(aes(x= name, y= mean_fantasy), data= subset(player_MF_role, role=="ADC"))+
+      geom_bar(stat='identity', aes(fill= name))+  theme(
+  axis.text.x = element_blank(),
+  axis.text.y = element_blank(),
+  axis.ticks = element_blank())
+```
+Choosing players with the highest averages for any given position is one strategy for getting the best fantasy team, but even this has limitations. In order to find out just how predictive averages are of performance in individual games let's build a model using the arithmetic mean.
+
+```{r}
+summary(model_avgs)
+```
+
+As we can see averages aren't necessarily the best indicator of performance in each indivdual game. There are two obvious drawbacks to using this approach.
+
+1. It requires us to know the future in order to calculate a complete average.
+
+2. Simply using a player's average doesn't account for match ups that will change from week to week.
+
+My solution to the first problem is to use cumulative means instead of taking an average of a player's performance of the entire season. A cumulative mean only uses records up to the current record in their calculation and better simulates looking at data from week to week where your data is more limited.
+
+```{r}
+dhd<- ghg%>%
+  group_by(name, role) %>%
+  mutate(cumGoldDif= cummean(goldEarnedDif),
+         cumGoldEarned= cummean(goldEarned),
+         cumKills= cummean(kills),
+         cumAssists= cummean(assists),
+         cumWin= cummean(win),
+         cumLKS= cummean(largestKillingSpree),
+         cumCLD= cummean(champLevelDif),
+         cumDeaths= cummean(deaths),
+         cumFantasy= cummean(fantasy),
+         cumDuration= cummean(duration),
+         cumTDDC= cummean(totalDamageDealtToChampions),
+         cumTDDCDif= cummean(totalDamageDealtToChampionsDif),
+         cumTDD= cummean(totalDamageDealt),
+         cumTDDDif= cummean(totalDamageDealtDif),
+         cumTDT= cummean(totalDamageTaken),
+         cumTDTDif= cummean(totalDamageTakenDif))
+```
+
+My solution for the second problem is to include opponent stats for each player in order to get some idea of how the match up affects the player's performance in each game. Now this is limited in the sense that I only included data in the data from direct lane match ups. That is to say I'll be comparing the stats of the opposing player in the corresponding position so Top laner vs. Top laner, ADC vs. ADC, etc. 
+
+```{r}
+dhd<- dhd %>%
+  group_by(opponent, role) %>%
+  mutate(cumOppGoldDif= cummean(-goldEarnedDif),
+         cumOppDuration= cummean(duration),
+         OppWin= (1-win),
+         cumOppWin= cummean(OppWin),
+         OppGoldEarned= goldEarned- goldEarnedDif,
+         cumOppGoldEarned= cummean(OppGoldEarned),
+         cumOppGoldEarnedDif= (-goldEarnedDif),
+         OppTDDC= totalDamageDealtToChampions-totalDamageDealtToChampionsDif,
+         cumOppTDDC= cummean(OppTDDC),
+         cumOppTDDCDif=cummean(-totalDamageDealtToChampionsDif),
+         OppTDD= totalDamageDealt- totalDamageDealtDif,
+         cumOppTDD= cummean(OppTDD),
+         cumOppTDDDif= cummean(-totalDamageDealtToChampionsDif),
+         OppTDT= totalDamageTaken- totalDamageTakenDif,
+         cumOppTDT= cummean(OppTDT),
+         cumOppTDTDif= cummean(-totalDamageTakenDif),
+         cumOppCLD= cummean(-champLevelDif))
+```
+
+Let's take a look and how it goes!
+
+```{r}
+summary(model1)
+```
+That's a lot better! In the interest of saving you some time I've omitted the variables that weren't particulary useful to the model and voila we've got a general model that can predict fantasy scores from week to week. 
+
+If you are as skeptical as I am you might ask, "With each role in a team being so different how is it that you can use one model for them all?". Worry not! My curiosity led me to wonder if I might be able to create models that better predict scores for player by position. Let's give it a whirl!
+
+Let's build a model specifcally for Middle laners. And it looks like it's even more predictive than the general model!
+
+```{r}
+summary(ModelM)
+```
+
+And here's a model for Top laners.
+```{r}
+summary(ModelT)
+```
+
+ADC players
+```{r}
+summary(ModelA)
+```
+
+Junglers
+```{r}
+summary(ModelJ)
+```
+
+And finally Supports
+```{r}
+summary(ModelS)
+```
+
+It might be interesting to ask ourselves why it is that some of the models are more predictive than others. You have to remember that we are only looking at direct match ups. So we can see that teams are generally less capable, whether by design of the game or by lack of ability, of abusing the enemy jungler with their own jungler advantage. On the opposite side of things we can see that an advantage for a middle laner has a much stronger effect on the outcome of the fantasy scores of his enemy. This also goes to show that teams ae actively recognizing strengths or weaknesses and pressing them accordingly. 
+
+We could take this analysis a step further in the future by recording all the enemy stats in order to find out which position has the easiest time pushing an advantage. We can even take the data as it is and try to predict the chances of winning rather than the potential fantasy score.
+
+
+Even with the data available now we can make some useful insights. For example let's take a look at the total damage damage being dealt to champions compared to the gold earned by role. We're going to look at winning games because we're interested in what makes a successful game!
+```{r}
+g2<-role_win<- summarize(subset(players_role, win==1), sum_Dmg= sum(totalDamageDealtToChampions))
+dmgs<- as.numeric(unlist(role_win[, 2]))
+pct <- round(dmgs/sum(dmgs)*100)
+lbls<- unlist(role_win[ , 1])
+lbls <- paste(lbls, pct)  
+lbls <- paste(lbls,"%",sep="")
+pie(as.integer(dmgs), lbls, main= "TDDC as a % in Won Games")
+```
+
+```{r}
+g1<- role_win<- summarize(subset(players_role, win==1), sum_Gold= sum(goldEarned))
+dmgs<- as.numeric(unlist(role_win[, 2]))
+pct <- round(dmgs/sum(dmgs)*100)
+lbls<- unlist(role_win[ , 1])
+lbls <- paste(lbls, pct)  
+lbls <- paste(lbls,"%",sep="")
+pie(as.integer(dmgs), lbls, main = "Gold Earned as % in Won Games")
+```
+
+We can see from our two pie charts that when it comes to dealing damage against champions that middle laners use their gold much more efficiently. They're afforded a smaller gold percentage and manage to do more damage to champions than any other position(on average of course). This information can be particularly useful when synthesized into a team strategy. If a team is centering their strategy around team-fighting then it makes sense that they should everything they can to focus more resources to their middle laner. On the same note you can say that if a team believes they have an exceptional or superior match up in middle lane then they should focus around team fighting as it may be the best strategy for them going forward.
+
+If we're like we can even do a similar analysis for a specific team to see how they compare. 
+
+```{r}
+g2<-role_win<- summarize(subset(players_role, win==1 & teamId=="TSM"), sum_Dmg= sum(totalDamageDealtToChampions))
+dmgs<- as.numeric(unlist(role_win[, 2]))
+pct <- round(dmgs/sum(dmgs)*100)
+lbls<- unlist(role_win[ , 1])
+lbls <- paste(lbls, pct)  
+lbls <- paste(lbls,"%",sep="")
+pie(as.integer(dmgs), lbls, main= "TSM: TDDC as a % in Won Games")
+```
+```{r}
+g1<- role_win<- summarize(subset(players_role, teamId=="TSM"), sum_Gold= sum(goldEarned))
+dmgs<- as.numeric(unlist(role_win[, 2]))
+pct <- round(dmgs/sum(dmgs)*100)
+lbls<- unlist(role_win[ , 1])
+lbls <- paste(lbls, pct)  
+lbls <- paste(lbls,"%",sep="")
+pie(as.integer(dmgs), lbls, main = "TSM: Gold Earned as % in Won Games")
+```
+
+We can see for TSM that they invest a higher amount of gold into their middle laner, but they also get an exceptionally high amount of damage output from him as well. Teams hoping to take a victory from TSM should focus on strategies to inhibit their middle laner, Bjergsen, as much as possible.
+
+Well that's all for now! I hope that I'll be able to look at more current data in the future, but this is a great demonstration of how data can power anyone from casual fantasy players, to Riot Games professional broadcasts, and even teams looking for ways to best analyze the strengths and weakness of enemy teams.
+
+Hope you enjoyed!
