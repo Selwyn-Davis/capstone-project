@@ -6,11 +6,18 @@ output: html_document
 ---
 Welcome to my analysis of League of Legends data!
 
-Here I will attempt to take apart some data on the professional League of Legends North American League for the 2015 season. This season is comprised of a Spring and Summer split and I opted to use this as opposed to the current season, which is progress, in order to ensure that I would be able to collect enough data in order to do a reasonable analysis. I also decided to limit my analysis to one region in order to avoid the effect that conflicting metas would have across regions.
+Here I will attempt to take apart some data on the professional League of Legends North American League for the 2015 season. This season is comprised of a Spring and Summer split and I opted to use this as opposed to the current season, which is in progress, in order to ensure that I would be able to collect enough data in order to do a reasonable analysis. I also decided to limit my analysis to one region in order to avoid the effect that conflicting metas would have across regions.
+
+
+### [Background on League of Legends as a game](http://leagueoflegends.wikia.com/wiki/League_of_Legends)
 
 ***
 
-### Sidentote for anyone who cares to know about the data collection process
+League of Legends is Multiplayer Online Battleground Arena(MOBA) style game developed by Riot Games. Each game consists of two teams with 5 players each. Each team starts the game at opposite sides of the [arena](http://na.leagueoflegends.com/en/site/guide/map.html) in a base that contains their Nexus. The goal of each game is to overcome obstacles such as [minions](http://na.leagueoflegends.com/en/site/guide/minions.html), [structures](http://na.leagueoflegends.com/en/site/guide/structures.html) and [enemy players](http://na.leagueoflegends.com/en/site/guide/enemy-champions.html) in order to destroy the enemy Nexus. Each team generally consists of 5 standard positions divided across the map;Top, Middle, Jungle, Attack Damage Carry(ADC)/Marksman and Support. A more in depth guide to the positions in League of Legends and the roles each position plays within a team can be found [here](http://forums.na.leagueoflegends.com/board/showthread.php?t=3160040). Each position can play a variety of roles and has the option of choosing between a hundred different champions that perform in each role with varying degrees of success according to the design of the champion, how well the champion synergizes with a given team, how well it counters a given enemy team and the skill of the individual player. With so many variables at play within each game it is impossible to say that one variable is going to determine the success or failure of any particular player.
+
+***
+
+### Sidenote for anyone who cares to know about the data collection process
 My inital hope was that I would be able to build a web scraper that pulled all of the data from the lol.esports.com website, but it turns out that Riot explicitly forbade it and I would have to use an api in order to get any data. When I made an attempt to to use the lol. esports api which isn't meant for rd party use I ran into another issue; The gameId's necessary to grab game data weren't arranged in a uniform manner. This meant that instead of using the scraper to pull the data I had to make the calls manually by finding the gameId from the match history on lol.esports and inserting it into a url. While this did require a few hours of tedious work on my part it was not without it's silver linings. I was able to instead save Json files locally and build the database in SQLite from there. This gave me the advantage of being able to make alterations to the script and re-run it at and have the database recreated in seconds. This was a particularly helpful for me as I'm not an experienced Python user and I would be able to make a lot more mistakes with this method. 
 
 ***
@@ -186,7 +193,7 @@ As we can see averages aren't necessarily the best indicator of performance in e
 
 2. Simply using a player's average doesn't account for match ups that will change from week to week.
 
-My solution to the first problem is to use cumulative means instead of taking an average of a player's performance of the entire season. A cumulative mean only uses records up to the current record in their calculation and better simulates looking at data from week to week where your data is more limited.
+My solution to the first problem is to use cumulative means instead of taking an average of a player's performance of the entire season. A cumulative mean only uses records up to the current record in their calculation and better simulates looking at data from week to week where the data available is more limited.
 
 ***
 
@@ -210,6 +217,41 @@ dhd<- ghg%>%
          cumTDT= cummean(totalDamageTaken),
          cumTDTDif= cummean(totalDamageTakenDif))
 ```
+
+It may not be readily apparent why I chose these variables so I'm going to provide you a with a brief, but thorough explanation of each variables definition and importance to our analysis.
+
+### Definition of Key Variables
+* cumGoldDif - Is the current mean of the difference in gold earned between a player and the player on the opposing team in the same position. This variable shows the average advantage a player has in gold.
+
+* cumGoldEarned - This is the current mean of the total amount of [gold](http://leagueoflegends.wikia.com/wiki/Gold) earned by a player. Gold is used to buy items in the shop that provide champions with bonus stats and abilities.
+
+* cumKills - The current mean of the number of [kills](http://leagueoflegends.wikia.com/wiki/Kill) a player has achieved in their games. Earning kills is one of the main ways to earn fantasy points.  
+
+* cumAssists -  The current mean of the number of [assists](http://leagueoflegends.wikia.com/wiki/Assist) a player has achieved in their games. Earning kills is one of the main ways to earn fantasy points.
+
+* cumWin -  A player's current winrate represented as a number between 1 and 0.
+
+* cumLKS -  The current mean of the player's longest killing spree. A spree is the amount of kills a player is able to earn without dying.
+
+* cumCLD -  The current mean of the player's difference in [champion level](http://leagueoflegends.wikia.com/wiki/Level). This stat gives us another means to meaasure advatnage for champion that might not do much damage.
+
+* cumDeaths -  The current mean of the number of player's [deaths](http://leagueoflegends.wikia.com/wiki/Death). This is the main way player's lose fantasy points.
+
+* cumFantasy -  The current mean of fantasy points earned by a player. This is likely to be indicative of future performance. 
+
+* cumDuration -  The current mean of the duration of a player's games. It is simple enough to think that longer games have the potential for more fantasy points.
+
+* cumTDDC -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions. The more damage a player deals the more likely they are to earn a kill or assists and therefore fantasy points.
+
+* cumTDDCDif -  The current mean of the difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions between a player and the player on the opposing team in the same position.
+
+* cumTDD -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions, minions, structures and monsters. The more damage a player deals the more likely they are to earn a kill or assists and therefore fantasy points.
+
+* cumTDDDif -   The current mean of the difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions, minions, structures and monsters. The more damage a player deals the more likely they are to earn a kill or assists and therefore fantasy points.
+
+* cumTDT -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) taken. The more damage a player takes the more likely they are die and lose fantasy points.
+
+* cumTDTDif - The current mean of the difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) taken.  The more damage a player takes the more likely they are die and lose fantasy points.
 
 ***
 
@@ -291,9 +333,30 @@ summary(ModelS)
 
 ***
 
-It might be interesting to ask ourselves why it is that some of the models are more predictive than others. You have to remember that we are only looking at direct match ups. So we can see that teams are generally less capable, whether by design of the game or by lack of ability, of abusing the enemy jungler with their own jungler advantage. On the opposite side of things we can see that an advantage for a middle laner has a much stronger effect on the outcome of the fantasy scores of his enemy. This also goes to show that teams ae actively recognizing strengths or weaknesses and pressing them accordingly. 
+It might be interesting to ask ourselves why it is that some of the models are more predictive than others. You have to remember that we are only looking at direct match ups. So we can see that teams are generally less capable, whether by design of the game or by lack of ability, of abusing the enemy jungler with their own jungler advantage. On the opposite side of things we can see that an advantage for a middle laner has a much stronger effect on the outcome of the fantasy scores of his enemy. This also goes to show that teams are actively recognizing match-up strengths and pressing them accordingly. 
 
-We could take this analysis a step further in the future by recording all the enemy stats in order to find out which position has the easiest time pushing an advantage. We can even take the data as it is and try to predict the chances of winning rather than the potential fantasy score.
+Using our general model we can take a look at the most valuable players for scoring fantasy points. I'm going to exclude any players that have had less than 12 games which is 2/3 of a split. This is just a precaution so that players with few games, but high averages won't skew our results too much. Now we can have a rank for the best draft picks for the 2015 season using our prediction based on their performance. 
+
+```{r echo= FALSE}
+pridctt<- predict(model1, newdata = dhd)
+jsds<- cbind(dhd, pridctt)
+
+
+predictions_rank<- jsds %>%
+  group_by(role, name) %>%
+  summarise(Avg_prediction= mean(pridctt), Sum_prediction= sum(pridctt),
+            n= n()) %>%
+  subset(n>12) %>%
+  ungroup() %>%
+  arrange(desc(Avg_prediction))
+
+head(predictions_rank)
+
+```
+
+***
+
+We could take this analysis a step further in the future by recording all the enemy stats in order to find out which position has the easiest time pushing an advantage. We can even take the data as it is and try to predict the chances of winning rather than the potential fantasy score, but that is an analysis for another time.
 
 
 Even with the data available now we can make some useful insights. For example let's take a look at the total damage damage being dealt to champions compared to the gold earned by role. We're going to look at winning games because we're interested in what makes a successful game!
