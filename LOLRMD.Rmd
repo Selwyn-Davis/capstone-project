@@ -6,10 +6,10 @@ output: html_document
 ---
 Welcome to my analysis of League of Legends data!
 
-Here I will attempt to take apart some data on the professional League of Legends North American League for the 2015 season. This season is comprised of a Spring and Summer split and I opted to use this as opposed to the current season, which is in progress, in order to ensure that I would be able to collect enough data in order to do a reasonable analysis. I also decided to limit my analysis to one region in order to avoid the effect that conflicting metas would have across regions.
+Here I will attempt to take apart some data on the professional League of Legends North American League for the 2015 season. This season is comprised of a Spring and Summer split and I opted to use this as opposed to the current season, which is in progress, in order to ensure that I would be able to collect enough data in order to do a reasonable analysis. I also decided to limit my analysis to one region in order to avoid the effect that conflicting styles would have across regions.
 
 
-### [Background on League of Legends as a game](http://leagueoflegends.wikia.com/wiki/League_of_Legends)
+### [Background on League of Legends as a Game](http://leagueoflegends.wikia.com/wiki/League_of_Legends)
 
 ***
 
@@ -227,7 +227,7 @@ It may not be readily apparent why I chose these variables so I'm going to provi
 
 * cumKills - The current mean of the number of [kills](http://leagueoflegends.wikia.com/wiki/Kill) a player has achieved in their games. Earning kills is one of the main ways to earn fantasy points.  
 
-* cumAssists -  The current mean of the number of [assists](http://leagueoflegends.wikia.com/wiki/Assist) a player has achieved in their games. Earning kills is one of the main ways to earn fantasy points.
+* cumAssists -  The current mean of the number of [assists](http://leagueoflegends.wikia.com/wiki/Assist) a player has achieved in their games. Earning assists is one of the main ways to earn fantasy points.
 
 * cumWin -  A player's current winrate represented as a number between 1 and 0.
 
@@ -241,21 +241,21 @@ It may not be readily apparent why I chose these variables so I'm going to provi
 
 * cumDuration -  The current mean of the duration of a player's games. It is simple enough to think that longer games have the potential for more fantasy points.
 
-* cumTDDC -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions. The more damage a player deals the more likely they are to earn a kill or assists and therefore fantasy points.
+* cumTDDC -  The current mean of total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions. The more damage a player deals the more likely they are to earn a kill or assists and therefore fantasy points.
 
-* cumTDDCDif -  The current mean of the difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions between a player and the player on the opposing team in the same position.
+* cumTDDCDif -  The current mean of difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions between a player and the player on the opposing team in the same position.
 
-* cumTDD -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions, minions, structures and monsters. The more damage a player deals the more likely they are to earn a kill or assists and therefore fantasy points.
+* cumTDD -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions, minions, structures and monsters. The more damage a player deals the more likely they are to earn a kill or assist and therefore fantasy points.
 
-* cumTDDDif -   The current mean of the difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions, minions, structures and monsters. The more damage a player deals the more likely they are to earn a kill or assists and therefore fantasy points.
+* cumTDDDif -   The current mean of difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) dealt to champions, minions, structures and monsters between a player and his opponent. The more damage a player deals the more likely they are to earn a kill or assist and therefore fantasy points.
 
-* cumTDT -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) taken. The more damage a player takes the more likely they are die and lose fantasy points.
+* cumTDT -  The current mean of the total [damage](http://leagueoflegends.wikia.com/wiki/Damage) taken by a player. The more damage a player takes the more likely they are die and lose fantasy points.
 
-* cumTDTDif - The current mean of the difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) taken.  The more damage a player takes the more likely they are die and lose fantasy points.
+* cumTDTDif - The current mean of difference in total [damage](http://leagueoflegends.wikia.com/wiki/Damage) taken by a player and his opponent.  The more damage a player takes the more likely they are die and lose fantasy points. This stat gives us insight into the advantage a player has over oponents.
 
 ***
 
-My solution for the second problem is to include opponent stats for each player in order to get some idea of how the match up affects the player's performance in each game. Now this is limited in the sense that I only included data in the data from direct lane match ups. That is to say I'll be comparing the stats of the opposing player in the corresponding position so Top laner vs. Top laner, ADC vs. ADC, etc. 
+My solution for the second problem is to include opponent stats for each player in order to get some idea of how the match up affects the player's performance in each game. Now this is limited in the sense that I only included data in the data from direct lane match ups. That is to say I'll be comparing the stats of the opposing player in the corresponding position so Top laner vs. Top laner, ADC vs. ADC, etc. These stats are similar to the ones just created so I won't define them again.
 
 ***
 
@@ -283,7 +283,7 @@ dhd<- dhd %>%
 
 ***
 
-Let's take a look and how it goes!
+Let's take a look and see how it goes!
 
 ***
 
@@ -333,11 +333,11 @@ summary(ModelS)
 
 ***
 
-It might be interesting to ask ourselves why it is that some of the models are more predictive than others. You have to remember that we are only looking at direct match ups. So we can see that teams are generally less capable, whether by design of the game or by lack of ability, of abusing the enemy jungler with their own jungler advantage. On the opposite side of things we can see that an advantage for a middle laner has a much stronger effect on the outcome of the fantasy scores of his enemy. This also goes to show that teams are actively recognizing match-up strengths and pressing them accordingly. 
+It might be interesting to ask ourselves why it is that some of the models are more predictive than others. You have to remember that we are only looking at direct match ups. So we can see that teams are generally less capable, whether by design of the game or by lack of ability, of abusing the enemy jungler with their own jungler advantage. On the opposite side of things we can see that an advantage for a middle laner has a much stronger effect on the performance of an enemy middle laner. This also goes to show that teams are actively recognizing match-up strengths and pressing them accordingly. 
 
-Using our general model we can take a look at the most valuable players for scoring fantasy points. I'm going to exclude any players that have had less than 12 games which is 2/3 of a split. This is just a precaution so that players with few games, but high averages won't skew our results too much. Now we can have a rank for the best draft picks for the 2015 season using our prediction based on their performance. 
+Using our general model we can take a look at the most valuable players for scoring fantasy points. I'm going to exclude any players that have had less than 12 games which is about 80% of a split. This is just a precaution so that players with few games, but high averages won't misrepresent our results too much. Now we can have a rank for the best draft picks for the 2015 season using our prediction based on their performance. 
 
-```{r echo= FALSE}
+```{r, echo= FALSE}
 pridctt<- predict(model1, newdata = dhd)
 jsds<- cbind(dhd, pridctt)
 
@@ -346,11 +346,27 @@ predictions_rank<- jsds %>%
   group_by(role, name) %>%
   summarise(Avg_prediction= mean(pridctt), Sum_prediction= sum(pridctt),
             n= n()) %>%
-  subset(n>12) %>%
+  subset(n>15) %>%
   ungroup() %>%
   arrange(desc(Avg_prediction))
 
-head(predictions_rank)
+predictions_rank[0:10,]
+
+```
+
+Let's take a peek at the actual results just to ease our curiosity.
+
+```{r, echo= FALSE}
+
+fantasy_rank<- dhd %>%
+  group_by(role, name) %>%
+  summarise(Avg_fantasy= mean(fantasy), Sum_fantasy= sum(fantasy),
+            n= n()) %>%
+  subset(n>15) %>%
+  ungroup() %>%
+  arrange(desc(Avg_fantasy))
+
+fantasy_rank[0:10,]
 
 ```
 
@@ -359,7 +375,7 @@ head(predictions_rank)
 We could take this analysis a step further in the future by recording all the enemy stats in order to find out which position has the easiest time pushing an advantage. We can even take the data as it is and try to predict the chances of winning rather than the potential fantasy score, but that is an analysis for another time.
 
 
-Even with the data available now we can make some useful insights. For example let's take a look at the total damage damage being dealt to champions compared to the gold earned by role. We're going to look at winning games because we're interested in what makes a successful game!
+Even with the data available now we can make some useful insights into team behavior. For example let's take a look at the total damage damage being dealt to champions compared to the gold earned by role. We're going to look at winning games because we're interested in what makes a successful game!
 
 ***
 
@@ -385,9 +401,9 @@ pie(as.integer(dmgs), lbls, main = "Gold Earned as % in Won Games")
 
 ***
 
-We can see from our two pie charts that when it comes to dealing damage against champions that middle laners use their gold much more efficiently. They're afforded a smaller gold percentage and manage to do more damage to champions than any other position(on average of course). This information can be particularly useful when synthesized into a team strategy. If a team is centering their strategy around team-fighting then it makes sense that they should everything they can to focus more resources to their middle laner. On the same note you can say that if a team believes they have an exceptional or superior match up in middle lane then they should focus around team fighting as it may be the best strategy for them going forward.
+We can see from our two pie charts that when it comes to dealing damage against champions middle laners use their gold much more efficiently. They're afforded a smaller gold percentage and manage to do more damage to champions than any other position(on average of course). This information can be particularly useful when synthesized into a team strategy. If a team is centering their strategy around team-fighting then it makes sense to focus resources on their middle laner. On the same note you can say that if a team believes they have an exceptional or superior match up in middle lane then they should focus around team fighting as it may be the best strategy for them going forward.
 
-If we're like we can even do a similar analysis for a specific team to see how they compare. 
+We can even do a similar analysis for a specific team to see how they compare to the average. 
 
 ***
 
@@ -412,8 +428,10 @@ pie(as.integer(dmgs), lbls, main = "TSM: Gold Earned as % in Won Games")
 
 ***
 
-We can see for TSM that they invest a higher amount of gold into their middle laner, but they also get an exceptionally high amount of damage output from him as well. Teams hoping to take a victory from TSM should focus on strategies to inhibit their middle laner, Bjergsen, as much as possible.
+We can see TSM invests a higher gold percentage into their middle laner, but they also get an exceptionally high amount of damage output from him as well. Teams hoping to take a victory from TSM should focus on strategies to inhibit their middle laner, Bjergsen, as much as possible.
 
-Well that's all for now! I hope that I'll be able to look at more current data in the future, but this is a great demonstration of how data can power anyone from casual fantasy players, to Riot Games professional broadcasts, and even teams looking for ways to best analyze the strengths and weakness of enemy teams.
 
-Hope you enjoyed!
+### Some concluding thoughts
+I hope that I'll be able to look at more current data in the future, but this is a great demonstration of how data can power anyone from casual fantasy players, to Riot Games professional broadcasts, and even teams looking for ways to best analyze the strengths and weaknesses of enemy teams to make informed decisions. In the event that we were able to gain access to a large amount of data from ranked League of Legends gameplay we can even use data analysis to improve matchmaking algorithms and game balance to the benefit of everyone that plays League of Legends around the world.
+
+Well that's all for now, hope you enjoyed!
